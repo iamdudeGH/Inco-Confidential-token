@@ -144,7 +144,7 @@ export default function App() {
         abi: abiData,
         functionName: 'encryptedMint',
         args: [encryptedAmountHex],
-        value: 100000000000000000n // Ensure sufficient INCO msg.value for FHE fee covering (0.1 INCO)
+        value: 10000000000000000n // 0.01 INCO - Sufficient for oracle fee without maxing wallet
       });
 
       const hash = await walletClient.writeContract(request as any);
