@@ -4,6 +4,7 @@ import { injected } from 'wagmi/connectors';
 import { Lightning } from '@inco/js/lite';
 import { supportedChains, handleTypes } from '@inco/js';
 import { Wallet, Coins, ArrowRightLeft, Eye } from 'lucide-react';
+import { createWalletClient, custom } from 'viem';
 
 import abiData from './abi.json';
 
@@ -93,15 +94,31 @@ export default function App() {
           }
         };
 
-        if (!walletClient) throw new Error("Wallet Client not connected");
+        let signerClient = walletClient;
 
-        // Ensure the active wallet chain matches the EIP-712 Domain ChainId
-        if (switchChainAsync && walletClient.chain?.id !== 84532) {
-          console.log("Forcing network switch to Base Sepolia (84532)...");
-          await switchChainAsync({ chainId: 84532 });
+        // Fallback to natively creating the client if Wagmi state is desynced
+        if (!signerClient) {
+          console.log("Wagmi walletClient not found. Creating native Viem client...");
+          signerClient = createWalletClient({
+            account: address as `0x${string}`,
+            chain: supportedChains.baseSepolia as any,
+            transport: custom((window as any).ethereum)
+          }) as any;
         }
 
-        const signature = await walletClient.signTypedData(eip712Payload);
+        if (!signerClient) throw new Error("Wallet Client not connected");
+
+        // Ensure the active wallet chain matches the EIP-712 Domain ChainId
+        if (switchChainAsync && signerClient.chain?.id !== 84532) {
+          console.log("Forcing network switch to Base Sepolia (84532)...");
+          try {
+            await switchChainAsync({ chainId: 84532 });
+          } catch (e) {
+            console.log("Switch chain failed, but continuing anyways", e);
+          }
+        }
+
+        const signature = await signerClient.signTypedData(eip712Payload);
 
         // Bypassing the buggy wrapper and going straight to Quorum Client logic
         const req = {
