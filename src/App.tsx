@@ -5,6 +5,7 @@ import { Lightning } from '@inco/js/lite';
 import { supportedChains, handleTypes } from '@inco/js';
 import { Wallet, Coins, ArrowRightLeft, Eye } from 'lucide-react';
 import { createWalletClient, custom } from 'viem';
+import { Buffer } from 'buffer';
 import abiData from './abi.json';
 
 const CONTRACT_ADDRESS = "0xBd74AFaDf5d406ef52892F8FDdd910E953Cc9D17";
@@ -72,8 +73,6 @@ export default function App() {
 
       if (handle) {
         console.log("Initializing viem discrete transport...");
-        // The Inco SDK expects a standard viem WalletClient constructed with the window.ethereum transport
-        // Importantly, Viem MUST have the account to perform any signing actions.
         const rawWalletClient = createWalletClient({
           account: address as `0x${string}`,
           chain: supportedChains.baseSepolia as any,
@@ -81,10 +80,56 @@ export default function App() {
         });
 
         console.log("Requesting attested decrypt from local zap instance...");
-        const result = await zap.attestedDecrypt(
-          rawWalletClient as any,
-          [String(handle)]
-        );
+        // Recreating the EIP-712 payload
+        const eip712Payload = {
+          domain: {
+            name: 'IncoAttestedDecrypt',
+            version: '2',
+            chainId: 84532,
+          },
+          types: {
+            AttestedDecryptRequest: [
+              { name: 'handles', type: 'bytes32[]' },
+              { name: 'publicKey', type: 'bytes' },
+            ]
+          },
+          primaryType: 'AttestedDecryptRequest' as const,
+          message: {
+            handles: [String(handle)] as readonly `0x${string}`[],
+            publicKey: '0x' as `0x${string}`,
+          }
+        };
+
+        const signature = await rawWalletClient.signTypedData(eip712Payload);
+
+        // Bypassing the buggy wrapper and going straight to Quorum Client logic
+        const req = {
+          userAddress: address,
+          handlesWithProofs: [
+            {
+              handle: String(handle),
+              aclProof: {
+                proof: {
+                  case: 'incoLiteBasicAclProof',
+                  value: {}
+                }
+              }
+            }
+          ],
+          // Strip the 0x prefix and convert signature hex to raw number array natively
+          eip712Signature: Array.from(
+            new Uint8Array(signature.slice(2).match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [])
+          ),
+          reencryptPubKey: new Uint8Array() // Empty for plaintext attestation return
+        };
+
+        console.log("Sending Decrypt request to Inco RPC Quorum...");
+        // Hack: extracting the internal Quorum Client
+        const result = await (zap as any).kmsQuorumClient.attestedDecrypt(req, {
+          maxRetries: 3,
+          initialDelay: 1000
+        });
+
         console.log("Decryption successful:", result);
         setBalance(result[0].plaintext.value);
       } else {
