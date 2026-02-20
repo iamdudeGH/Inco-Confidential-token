@@ -133,7 +133,7 @@ export default function App() {
         abi: abiData,
         functionName: 'encryptedMint',
         args: [encryptedAmountHex],
-        value: 100000000000000n // Fee for gas/Inco
+        value: 10000000000000000n // Ensure sufficient INCO msg.value for FHE fee covering
       });
 
       const hash = await walletClient.writeContract(request as any);
