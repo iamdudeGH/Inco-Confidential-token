@@ -105,12 +105,12 @@ export default function App() {
       const amountBigInt = BigInt(mintAmount);
       const encryptedAmountHex = await zap.encrypt(amountBigInt, {
         accountAddress: address,
-        dappAddress: CONTRACT_ADDRESS,
+        dappAddress: zap.executorAddress || CONTRACT_ADDRESS,
         handleType: handleTypes.euint256
       });
 
       const { request } = await publicClient.simulateContract({
-        account: address,
+        account: address as `0x${string}`,
         address: CONTRACT_ADDRESS,
         abi: abiData,
         functionName: 'encryptedMint',
@@ -138,7 +138,7 @@ export default function App() {
       const amountBigInt = BigInt(transferAmount);
       const encryptedAmountHex = await zap.encrypt(amountBigInt, {
         accountAddress: address,
-        dappAddress: CONTRACT_ADDRESS,
+        dappAddress: zap.executorAddress || CONTRACT_ADDRESS,
         handleType: handleTypes.euint256
       });
 
