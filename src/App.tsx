@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useAccount, useConnect, useDisconnect, useWalletClient, usePublicClient } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useWalletClient, usePublicClient, useSwitchChain } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { Lightning } from '@inco/js/lite';
 import { supportedChains, handleTypes } from '@inco/js';
 import { Wallet, Coins, ArrowRightLeft, Eye } from 'lucide-react';
-import { createWalletClient, custom } from 'viem';
+
 import abiData from './abi.json';
 
 const CONTRACT_ADDRESS = "0xBd74AFaDf5d406ef52892F8FDdd910E953Cc9D17";
@@ -15,6 +15,7 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
+  const { switchChainAsync } = useSwitchChain();
 
   const [zap, setZap] = useState<any>(null);
   const [balance, setBalance] = useState<string | null>(null);
@@ -71,13 +72,6 @@ export default function App() {
       console.log("Handle:", handle);
 
       if (handle) {
-        console.log("Initializing viem discrete transport...");
-        const rawWalletClient = createWalletClient({
-          account: address as `0x${string}`,
-          chain: supportedChains.baseSepolia as any,
-          transport: custom((window as any).ethereum)
-        });
-
         console.log("Requesting attested decrypt from local zap instance...");
         // Recreating the EIP-712 payload
         const eip712Payload = {
@@ -99,7 +93,15 @@ export default function App() {
           }
         };
 
-        const signature = await rawWalletClient.signTypedData(eip712Payload);
+        if (!walletClient) throw new Error("Wallet Client not connected");
+
+        // Ensure the active wallet chain matches the EIP-712 Domain ChainId
+        if (switchChainAsync && walletClient.chain?.id !== 84532) {
+          console.log("Forcing network switch to Base Sepolia (84532)...");
+          await switchChainAsync({ chainId: 84532 });
+        }
+
+        const signature = await walletClient.signTypedData(eip712Payload);
 
         // Bypassing the buggy wrapper and going straight to Quorum Client logic
         const req = {
