@@ -83,12 +83,7 @@ export default function App() {
         console.log("Requesting attested decrypt from local zap instance...");
         const result = await zap.attestedDecrypt(
           rawWalletClient as any,
-          [String(handle)],
-          {
-            accountAddress: address,
-            dappAddress: CONTRACT_ADDRESS,
-            handleType: handleTypes.euint256
-          }
+          [String(handle)]
         );
         console.log("Decryption successful:", result);
         setBalance(result[0].plaintext.value);
