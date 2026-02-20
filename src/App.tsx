@@ -5,7 +5,6 @@ import { Lightning } from '@inco/js/lite';
 import { supportedChains, handleTypes } from '@inco/js';
 import { Wallet, Coins, ArrowRightLeft, Eye } from 'lucide-react';
 import { createWalletClient, custom } from 'viem';
-import { Buffer } from 'buffer';
 import abiData from './abi.json';
 
 const CONTRACT_ADDRESS = "0xBd74AFaDf5d406ef52892F8FDdd910E953Cc9D17";
