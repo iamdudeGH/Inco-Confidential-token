@@ -105,7 +105,7 @@ export default function App() {
       const amountBigInt = BigInt(mintAmount);
       const encryptedAmountHex = await zap.encrypt(amountBigInt, {
         accountAddress: address,
-        dappAddress: zap.executorAddress || CONTRACT_ADDRESS,
+        dappAddress: zap.executorAddress || '0x168FDc3Ae19A5d5b03614578C58974FF30FCBe92',
         handleType: handleTypes.euint256
       });
 
@@ -138,7 +138,7 @@ export default function App() {
       const amountBigInt = BigInt(transferAmount);
       const encryptedAmountHex = await zap.encrypt(amountBigInt, {
         accountAddress: address,
-        dappAddress: zap.executorAddress || CONTRACT_ADDRESS,
+        dappAddress: zap.executorAddress || '0x168FDc3Ae19A5d5b03614578C58974FF30FCBe92',
         handleType: handleTypes.euint256
       });
 
