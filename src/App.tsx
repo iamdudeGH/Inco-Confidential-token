@@ -73,27 +73,6 @@ export default function App() {
       console.log("Handle:", handle);
 
       if (handle) {
-        console.log("Requesting attested decrypt from local zap instance...");
-        // Recreating the EIP-712 payload
-        const eip712Payload = {
-          domain: {
-            name: 'IncoAttestedDecrypt',
-            version: '2',
-            chainId: 84532,
-          },
-          types: {
-            AttestedDecryptRequest: [
-              { name: 'handles', type: 'bytes32[]' },
-              { name: 'publicKey', type: 'bytes' },
-            ]
-          },
-          primaryType: 'AttestedDecryptRequest' as const,
-          message: {
-            handles: [String(handle)] as readonly `0x${string}`[],
-            publicKey: '0x' as `0x${string}`,
-          }
-        };
-
         let signerClient = walletClient;
 
         // Fallback to natively creating the client if Wagmi state is desynced
@@ -118,35 +97,11 @@ export default function App() {
           }
         }
 
-        const signature = await signerClient.signTypedData(eip712Payload);
-
-        // Bypassing the buggy wrapper and going straight to Quorum Client logic
-        const req = {
-          userAddress: address,
-          handlesWithProofs: [
-            {
-              handle: String(handle),
-              aclProof: {
-                proof: {
-                  case: 'incoLiteBasicAclProof',
-                  value: {}
-                }
-              }
-            }
-          ],
-          // Strip the 0x prefix and convert signature hex to raw number array natively
-          eip712Signature: Array.from(
-            new Uint8Array(signature.slice(2).match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [])
-          ),
-          reencryptPubKey: new Uint8Array() // Empty for plaintext attestation return
-        };
-
-        console.log("Sending Decrypt request to Inco RPC Quorum...");
-        // Hack: extracting the internal Quorum Client
-        const result = await (zap as any).kmsQuorumClient.attestedDecrypt(req, {
-          maxRetries: 3,
-          initialDelay: 1000
-        });
+        console.log("Requesting attested decrypt from local zap instance...");
+        const result = await zap.attestedDecrypt(
+          signerClient as any,
+          [String(handle)]
+        );
 
         console.log("Decryption successful:", result);
         setBalance(result[0].plaintext.value);
